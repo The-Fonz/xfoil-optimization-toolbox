@@ -20,6 +20,8 @@ on files for output, and was not interactive.)
 
 from __future__ import division
 import subprocess as subp
+import numpy as np
+import re
 
 from threading import Thread
 from Queue import Queue, Empty
@@ -48,52 +50,77 @@ def oper_alpha_visc(airfoil, alpha, Re, Mach=None,
     xf = Xfoil()
     if normalize:
         xf.cmd("NORM")
-    # Disable G(raphics) flag in Plotting options
-    if not plot:
-        xf.cmd("PLOP\nG\n\n", newline=False)
-    
-    # Generate NACA in XFOIL if so desired
+    # Generate NACA or load from file
     if gen_naca:
         xf.cmd(airfoil)
     else:
         xf.cmd("LOAD " + airfoil)
-
+    # Disable G(raphics) flag in Plotting options
+    if not plot:
+        xf.cmd("PLOP\nG\n\n", autonewline=False)
+    # Enter OPER menu
     xf.cmd("OPER")
-
     if iterlim:
         xf.cmd("ITER {:.0f}".format(iterlim))
-
     xf.cmd("VISC {}".format(Re))
     if Mach:
-        xf.cmd("MACH {.3f}".format(Mach))
+        xf.cmd("MACH {:.3f}".format(Mach))
     # Turn polar accumulation on, double enter for no savefile or dumpfile
-    xf.cmd("PACC\n\n\n", newline=False)
+    xf.cmd("PACC\n\n\n", autonewline=False)
     # Try iterating over alpha
     try:
         if len(alpha) != 3:
             raise Warning("alpha is single value or [start, stop, interval]")
-        xf.cmd("ASEQ " + " ".join(["{:.3f}".format(a) for a in alpha]))
+        # * unpacks, same as (alpha[0], alpha[1],...)
+        xf.cmd("ASEQ {:.3f} {:.3f} {:.3f}".format(*alpha))
     # If iterating doesn't work, try assuming it's a single digit
     except TypeError:
         xf.cmd("ALFA {:.3f}".format(alpha))
-    from time import sleep
-    sleep(1)
-    xf.read()
-    endmarker = "ENDD"
-    xf.cmd("PLIS\n"+endmarker+"\n")
-    sleep(.2)
-    # TODO: Keep reading until endmarker is encountered
-    print parse_stdout_polar(xf.read())
+
+    # List polar and send recognizable end marker
+    xf.cmd("PLIS\nENDD\n", autonewline=False)
+    
+    # Keep reading until end marker is encountered
+    output = ['']
+    while not re.search("ENDD", output[-1]):
+        line = xf.readline()
+        if line:
+            output.append(line)
+            #print type(output[-1])
+    print parse_stdout_polar(output)
     xf.close()
 
 
-def parse_stdout_polar(polartxt):
-    """Converts polar 'PLIS' data to array"""
-    return polartxt
-    # TODO: Find Mach, Re, Ncrit
-    # TODO: Find titles of plot
-    # TODO: Convert to numpy array using regex
-    # TODO: Return array and info string/array
+def parse_stdout_polar(lines):
+    """Converts polar 'PLIS' data to array"""    
+    def clean_split(s): return re.split('\s+', s.replace('\r\n',''))[1:]
+
+    # Find location of data from ---- divider
+    for i, line in enumerate(lines):
+        if re.match('\s*---', line):
+            dividerIndex = i
+    
+    # What columns mean
+    data_header = clean_split(lines[dividerIndex-1])
+
+    # Clean info lines
+    info = ''.join(lines[dividerIndex-4:dividerIndex-2])
+    info = re.sub("[\r\n\s]","", info)
+    # Parse info
+    def p(s): return float(re.search(s, info).group(1))
+    infodict = {
+     'xtrf_top': p("xtrf=(\d+\.\d+)"),
+     'xtrf_bottom': p("\(top\)(\d+\.\d+)\(bottom\)"),
+     'Mach': p("Mach=(\d+\.\d+)"),
+     'Ncrit': p("Ncrit=(\d+\.\d+)"),
+     'Re': p("Re=(\d+\.\d+e\d+)")
+    }
+
+    # Extract, clean, convert to array
+    datalines = lines[dividerIndex+1:-2]
+    data_array = np.array(
+    [clean_split(dataline) for dataline in datalines], dtype='float')
+    return data_array, data_header, infodict
 
 
 class Xfoil():
@@ -111,38 +138,33 @@ class Xfoil():
         self._stdin = self.xfinst.stdin
         self._stderr = self.xfinst.stderr
 
-    def cmd(self, cmd, newline=True):
+    def cmd(self, cmd, autonewline=True):
         """Give a command. Set newline=False for manual control with '\n'"""
-        n = '\n' if newline else ''
+        n = '\n' if autonewline else ''
         self.xfinst.stdin.write(cmd + n)
 
-    def read(self):
-        """Read all lines"""
-        lines = ""
-        l = self._stdoutnonblock.readline()
-        # Terminates when line is empty
-        while l:
-            lines += l
-            l = self._stdoutnonblock.readline()  
-        return lines 
+    def readline(self):
+        """Read one line, returns None if empty"""
+        return self._stdoutnonblock.readline()
 
     def close(self):
-        print "Xfoil: instance closed through .close()"
+        #print "Xfoil: instance closed through .close()"
         self.xfinst.kill()
     def __enter__(self):
         """Gets called when entering 'with ... as ...' block"""
         return self
     def __exit__(self):
         """Gets called when exiting 'with ... as ...' block"""
-        print "Xfoil: instance closed through __exit__"
+        #print "Xfoil: instance closed through __exit__"
         self.xfinst.kill()
     def __del__(self):
         """Gets called when deleted with 'del ...' or garbage collected"""
-        print "Xfoil: instance closed through __del__ (e.g. garbage collection)"
+        #print "Xfoil: instance closed through __del__ (e.g. garbage collection)"
         self.xfinst.kill()
 
 
 class UnexpectedEndOfStream(Exception): pass
+
 class NonBlockingStreamReader:
     """From http://eyalarubas.com/python-subproc-nonblock.html"""
  
@@ -162,7 +184,7 @@ class NonBlockingStreamReader:
                 if line:
                     queue.put(line)
                 else:
-                    print "NonBlockingStreamReader: End of stream"
+                    #print "NonBlockingStreamReader: End of stream"
                     # Make sure to terminate
                     return
                     #raise UnexpectedEndOfStream
@@ -180,4 +202,4 @@ class NonBlockingStreamReader:
             return None
 
 
-oper_alpha_visc("NACA 2215", [0,5,1], 2E6, gen_naca=True)
+oper_alpha_visc("NACA 2215", [0,5,1], 2E6, Mach=.6, gen_naca=True)
