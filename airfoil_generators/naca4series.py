@@ -40,6 +40,10 @@ class NACA4(ParametricAirfoil):
         c = (.2969, .1260, .3516, .2843, .1015)
         y_t = t/.2 * (c[0]*x**.5-c[1]*x-c[2]*x**2+c[3]*x**3-c[4]*x**4)
         return y_t
+    
+    def __str__(self):
+        return ("""NACA 4-series (camber {}, pos. {}, thickness {})"""
+        .format(self.m, self.p, self.t))
 
 
 def _example():

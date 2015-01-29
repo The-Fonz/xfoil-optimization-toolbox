@@ -21,17 +21,26 @@ on files for output, and was not interactive.)
 from __future__ import division
 import subprocess as subp
 import numpy as np
+import os.path
 import re
 
 from threading import Thread
 from Queue import Queue, Empty
 
+def oper_visc_alpha(*args, **kwargs):
+    """Wrapper for _oper_visc"""
+    return _oper_visc(["ALFA","ASEQ"], *args, **kwargs)
 
-def oper_alpha_visc(airfoil, alpha, Re, Mach=None,
+def oper_visc_cl(*args, **kwargs):
+    """Wrapper for _oper_visc"""
+    return _oper_visc(["Cl","CSEQ"], *args, **kwargs)
+
+
+def _oper_visc(pcmd, airfoil, operating_point, Re, Mach=None,
                     normalize=True, plot=False, iterlim=None, gen_naca=False):
     """
     Convenience function that returns polar for specified airfoil and
-    Reynolds number for (range of) alpha.
+    Reynolds number for (range of) alpha or cl.
     Waits on XFOIL to finish so is blocking.
     
     args:
@@ -46,15 +55,18 @@ def oper_alpha_visc(airfoil, alpha, Re, Mach=None,
        iterlim=None   -> Set a new iteration limit (XFOIL standard is 10)
        gen_naca=False -> Generate airfoil='NACA xxxx(x)' within XFOIL
     """
+    # Circumvent different current working directory problems
+    path = os.path.dirname(os.path.realpath(__file__))
+    xf = Xfoil(path)
 
-    xf = Xfoil()
     if normalize:
         xf.cmd("NORM")
     # Generate NACA or load from file
     if gen_naca:
         xf.cmd(airfoil)
     else:
-        xf.cmd("LOAD " + airfoil)
+        xf.cmd('LOAD {}\n\n'.format(airfoil),
+               autonewline=False)
     # Disable G(raphics) flag in Plotting options
     if not plot:
         xf.cmd("PLOP\nG\n\n", autonewline=False)
@@ -65,17 +77,18 @@ def oper_alpha_visc(airfoil, alpha, Re, Mach=None,
     xf.cmd("VISC {}".format(Re))
     if Mach:
         xf.cmd("MACH {:.3f}".format(Mach))
+
     # Turn polar accumulation on, double enter for no savefile or dumpfile
     xf.cmd("PACC\n\n\n", autonewline=False)
-    # Try iterating over alpha
+    # Calculate polar
     try:
-        if len(alpha) != 3:
-            raise Warning("alpha is single value or [start, stop, interval]")
+        if len(operating_point) != 3:
+            raise Warning("oper pt is single value or [start, stop, interval]")
         # * unpacks, same as (alpha[0], alpha[1],...)
-        xf.cmd("ASEQ {:.3f} {:.3f} {:.3f}".format(*alpha))
-    # If iterating doesn't work, try assuming it's a single digit
+        xf.cmd("{:s} {:.3f} {:.3f} {:.3f}".format(pcmd[1], *operating_point))
     except TypeError:
-        xf.cmd("ALFA {:.3f}".format(alpha))
+        # If iterating doesn't work, assume it's a single digit
+        xf.cmd("{:s} {:.3f}".format(pcmd[0], operating_point))
 
     # List polar and send recognizable end marker
     xf.cmd("PLIS\nENDD\n", autonewline=False)
@@ -86,9 +99,10 @@ def oper_alpha_visc(airfoil, alpha, Re, Mach=None,
         line = xf.readline()
         if line:
             output.append(line)
-            #print type(output[-1])
-    print parse_stdout_polar(output)
+
     xf.close()
+
+    return parse_stdout_polar(output)
 
 
 def parse_stdout_polar(lines):
@@ -106,7 +120,7 @@ def parse_stdout_polar(lines):
     # Clean info lines
     info = ''.join(lines[dividerIndex-4:dividerIndex-2])
     info = re.sub("[\r\n\s]","", info)
-    # Parse info
+    # Parse info with regular expressions
     def p(s): return float(re.search(s, info).group(1))
     infodict = {
      'xtrf_top': p("xtrf=(\d+\.\d+)"),
@@ -120,6 +134,7 @@ def parse_stdout_polar(lines):
     datalines = lines[dividerIndex+1:-2]
     data_array = np.array(
     [clean_split(dataline) for dataline in datalines], dtype='float')
+
     return data_array, data_header, infodict
 
 
@@ -130,9 +145,9 @@ class Xfoil():
     on the XFOIL process.
     """
     
-    def __init__(self):
+    def __init__(self, path=""):
         """Spawn xfoil child process"""
-        self.xfinst = subp.Popen("xfoil",
+        self.xfinst = subp.Popen(os.path.join(path, 'xfoil'),
                   stdin=subp.PIPE, stdout=subp.PIPE, stderr=subp.PIPE)
         self._stdoutnonblock = NonBlockingStreamReader(self.xfinst.stdout)
         self._stdin = self.xfinst.stdin
@@ -166,7 +181,10 @@ class Xfoil():
 class UnexpectedEndOfStream(Exception): pass
 
 class NonBlockingStreamReader:
-    """From http://eyalarubas.com/python-subproc-nonblock.html"""
+    """XFOIL is interactive, thus readline() blocks. The solution is to
+       let another thread handle the XFOIL communication, and communicate
+       with that thread using a queue.
+       From http://eyalarubas.com/python-subproc-nonblock.html"""
  
     def __init__(self, stream):
         '''
@@ -202,4 +220,6 @@ class NonBlockingStreamReader:
             return None
 
 
-oper_alpha_visc("NACA 2215", [0,5,1], 2E6, Mach=.6, gen_naca=True)
+if __name__ == "__main__":
+    print oper_visc_alpha("NACA 2215", [0,5,1], 2E6, Mach=.6,
+                          gen_naca=True, plot=True)

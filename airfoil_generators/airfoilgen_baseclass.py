@@ -60,7 +60,7 @@ class ParametricAirfoil(object):
 
     def __str__(self):
         """Gives some information about the airfoil."""
-        return self.get_coords_plain()
+        return "Airfoil object, implement __str__ method to give more info."
 
     def get_coords_plain(self, *args):
         """Returns string of coordinates in plain format."""
