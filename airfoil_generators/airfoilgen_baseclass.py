@@ -50,6 +50,17 @@ class ParametricAirfoil(object):
         x_l = x + y_t*np.sin(theta)
         y_l = y_c - y_t*np.cos(theta)
         return x_l, y_l, x_u, y_u, x, y_c
+    
+    def max_thickness(self):
+        """Numerically compute max. thickness of airfoil"""
+        x_l, y_l, x_u, y_u = self.get_coords()[:4]
+        return y_u.max() - y_l.min()
+
+    def area(self):
+        """Numerically compute volume of airfoil"""
+        x_l, y_l, x_u, y_u = self.get_coords()[:4]
+        # Use trapezoidal integration
+        return np.trapz(y_u, x_u) - np.trapz(y_l, x_l)
 
     def _camberline(self, xpts):
         raise Warning("""In child class,

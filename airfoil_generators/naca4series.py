@@ -51,8 +51,13 @@ def _example():
     c,l,t = 8,4,15
     test_airfoil = NACA4(c, l, t)
 
-    # Get and print plain list of coordinates
+    # Print airfoil info
     print test_airfoil
+
+    # Get thickness
+    print ("Real thickness (including camber): {:.1%}"
+          .format(test_airfoil.max_thickness()))
+    print ("Volume: {:.3f} chord^2".format(test_airfoil.area()))
 
     pts = test_airfoil.get_coords()
 

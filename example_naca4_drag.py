@@ -54,7 +54,7 @@ for m in xrange(1,6):
 plt.pcolor(drags, cmap=plt.cm.coolwarm)
 
 # Make plot pretty
-plt.title(r"$C_d$ of $NACAmp15$ at $C_l={}$ and $Re={}$".format(Cl, Re))
+plt.title(r"$C_d$ of $NACAmp15$ at $C_l={}$ and $Re={:g}$".format(Cl, Re))
 plt.xlabel("Location of max. camber $p$")
 plt.ylabel("Max. camber $m$")
 cbar = plt.colorbar()

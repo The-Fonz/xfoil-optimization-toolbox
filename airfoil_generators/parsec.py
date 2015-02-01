@@ -15,6 +15,7 @@ class PARSEC(ParametricAirfoil):
         """Takes a dict of coefficients to define PARSEC airfoil.
         Coefficient names: xte, yte, rle, x_suc, y_suc, d2ydx2_suc, th_suc,
                                           x_pre, y_pre, d2ydx2_pre, th_pre"""
+        self.k = k        
         try:
             # Parent class contains functions that need to know x-pos of TE
             self.xte = k['xte']
@@ -28,6 +29,11 @@ class PARSEC(ParametricAirfoil):
             "Explanation:\n"+self.__init__.__doc__)
         except KeyError, e:
             raise Warning("{:s} was not defined in the dict".format(e))
+    
+    def __str__(self):
+        """Gives some information on airfoil"""
+        return ("Airfoil with PARSEC parametrization. Coefficients: {}"
+                .format(self.k))
 
     def _fn_upper_lower(self, xpts):
         return (xpts, self._calc_coords(xpts, self.coeffs_upper),
@@ -103,7 +109,7 @@ def _example():
     # Evaluate pressure (lower) surface coefficients
     test_airfoil = PARSEC(k)
 
-    # Get and print plain list of coordinates
+    # Print info on airfoil
     print test_airfoil
 
     pts = test_airfoil.get_coords()
@@ -114,7 +120,6 @@ def _example():
     plt.plot(pts[2], pts[3], 'o--')
     plt.gca().axis('equal')
     plt.show()
-
 
 
 # If this file is run, execute example

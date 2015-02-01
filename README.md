@@ -1,4 +1,4 @@
-The Python XFOIL optimization toolbox can be used to optimize airfoils for a specific operating range. I made it to optimize the shape of a strut.
+The Python XFOIL optimization toolbox can be used to optimize airfoils for a specific operating range. I made it to be able to optimize the shape of a strut.
 
 ## Useful because
 It might be useful to you for its three different toolsets:
@@ -10,11 +10,12 @@ It might be useful to you for its three different toolsets:
   - **Not yet implemented, working on it** Particle Swarm Optimization: robust, easy-to-use optimization algorithm that often outperforms genetic algorithms. Does not use gradients.
 
 ## Airfoil generation and XFOIL communication
-Being able to easily generate airfoils and communicate with XFOIL is very powerful. With not too much effort, you can make a plot like in [this](example_naca4_drag.py) example:
+Being able to easily generate airfoils and communicate with XFOIL is very powerful. With not too much effort, you can make a plot like this:
 ![](example_figures/naca4series-rangeplot.png)
+[Go to code](example_naca4_drag.py)
 
 ## Particle Swarm Optimization
 **PARSEC symmetric strut Particle Swarm Optimization example in the works.**
 
 ## Additional development ideas
-- NURBS airfoils: A great idea would be to add NURBS airfoils to the airfoil generators, as NURBS can define very smooth airfoils using very few parameters, so it is very good for optimization purposes. Ideally, the NURBS airfoil can be fitted to some other shape, to start off with a reasonable airfoil.
+- NURBS airfoils: A great idea would be to add NURBS airfoils to the airfoil generators, as NURBS can define very smooth airfoils using very few parameters, so it's a good fit for optimization purposes. Ideally, its shape can be initialized by fitting it to some existing shape, to start off with a reasonable airfoil.
