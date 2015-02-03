@@ -19,6 +19,7 @@ on files for output, and was not interactive.)
 """
 
 from __future__ import division
+from time import sleep
 import subprocess as subp
 import numpy as np
 import os.path
@@ -37,7 +38,7 @@ def oper_visc_cl(*args, **kwargs):
 
 
 def _oper_visc(pcmd, airfoil, operating_point, Re, Mach=None,
-                    normalize=True, plot=False, iterlim=None, gen_naca=False):
+             normalize=True, show_seconds=None, iterlim=None, gen_naca=False):
     """
     Convenience function that returns polar for specified airfoil and
     Reynolds number for (range of) alpha or cl.
@@ -68,7 +69,7 @@ def _oper_visc(pcmd, airfoil, operating_point, Re, Mach=None,
         xf.cmd('LOAD {}\n\n'.format(airfoil),
                autonewline=False)
     # Disable G(raphics) flag in Plotting options
-    if not plot:
+    if not show_seconds:
         xf.cmd("PLOP\nG\n\n", autonewline=False)
     # Enter OPER menu
     xf.cmd("OPER")
@@ -91,17 +92,19 @@ def _oper_visc(pcmd, airfoil, operating_point, Re, Mach=None,
         xf.cmd("{:s} {:.3f}".format(pcmd[0], operating_point))
 
     # List polar and send recognizable end marker
-    xf.cmd("PLIS\nENDD\n", autonewline=False)
+    xf.cmd("PLIS\nENDD\n\n", autonewline=False)
     
+    print "Xfoil module starting read"
     # Keep reading until end marker is encountered
     output = ['']
     while not re.search("ENDD", output[-1]):
         line = xf.readline()
         if line:
             output.append(line)
-
-    xf.close()
-
+    print "Xfoil module ending read"
+    if show_seconds:
+        sleep(show_seconds)
+    #print ''.join(output)
     return parse_stdout_polar(output)
 
 
