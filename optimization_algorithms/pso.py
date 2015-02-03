@@ -11,8 +11,6 @@ from __future__ import division
 import numpy as np
 # Import N(mu, sigma) and U[0,1) function
 from numpy.random import normal, uniform
-# Import built-in array module (lists of one type)
-import array
 
 class Particle():
 	'''A particle is an array of constrained numbers.
@@ -28,14 +26,14 @@ class Particle():
 
 	def new_best(self, score):
 		'''Stores new personal best score and position.'''
-		self.best = score
-		self.bestpos = self.pts
+		self.bestscore = score
+		self.bestpts = self.pts
 
 	def randomize(self):
 		'''Randomize with uniform distribution within bounds.'''
 		# Iterate over self.pts
 		for i, (lowerbound, upperbound) in enumerate(self.constraints):
-			self.pts[i]  = lowerbound + uniform(lowerbound, upperbound)
+			self.pts[i]  = uniform(lowerbound, upperbound)
 			absdiff = abs(upperbound-lowerbound)
 			self.spds[i] = uniform(-absdiff, absdiff)
 
@@ -43,7 +41,7 @@ class Particle():
 		'''Update velocity and position'''
 		r_p, r_g = uniform(0,1), uniform(0,1)
 		# v_i,d <- omega*v_i,d + theta_p*r_p*(p_i,d-x_i,d) + theta_g*r_g*(g_d-x_i,d)
-		self.spds = (omega*self.spds + theta_p*r_p*(self.best-self.pts) +
+		self.spds = (omega*self.spds + theta_p*r_p*(self.bestpts-self.pts) +
 		               theta_g*r_g*(global_best-self.pts))
 		self.pts += self.spds
      
@@ -76,13 +74,17 @@ def test():
 	from copy import copy
 	a = copy(p.pts)
 	p.randomize()
-	assert(a != p.pts), "Randomized Particle has same pts as before"
+	try:
+		np.testing.assert_array_almost_equal(a,p.pts)
+		raise Warning("Randomized Particle has same pts as before")
+	except AssertionError:
+		pass
 	
 	# APSO
 	# Make p.pts equal to globMin (first argument) with B=1 and a=0
 	p.APSO( (3, 2, 0), 1, 0)
 	p.APSO( (3, 1, 0), .5, 0)
-	assert(p.pts == array.array('f', [3.0, 1.5, 0.0]))
+	np.testing.assert_array_almost_equal(p.pts, np.array([3.0, 1.5, 0.0]))
 	
 # Run tests when running this file itself, and not when importing it.
 if __name__ == "__main__":

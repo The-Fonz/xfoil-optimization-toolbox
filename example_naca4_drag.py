@@ -39,9 +39,6 @@ for m in xrange(1,6):
             raise Warning("Shit! XFOIL didn't converge on NACA{}{}15 at Cl={}."
                           .format(m,p,Cl))
 
-        # Remove temporary file
-        os.remove(temp_af_filename)
-
         # Plot airfoil shape
         xl, yl, xu, yu, xc, yc = airfoil.get_coords()
         def translated_plt(x, y, *args):
@@ -49,6 +46,9 @@ for m in xrange(1,6):
         translated_plt(xl, yl, 'w')
         translated_plt(xu, yu, 'w')
         translated_plt(xc, yc, 'w--')
+
+        # Remove temporary file
+        os.remove(temp_af_filename)
 
 # Plot drag values in color
 plt.pcolor(drags, cmap=plt.cm.coolwarm)

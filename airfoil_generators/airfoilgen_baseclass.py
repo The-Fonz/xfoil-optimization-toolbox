@@ -95,3 +95,10 @@ class ParametricAirfoil(object):
         # Take TE position into account
         xpts *= self.xte
         return self._fn_upper_lower(xpts)
+
+    def plot(self, ax):
+        """Plots airfoil outline given matplotlib.pyplot.Axes"""
+        x_l, y_l, x_u, y_u = self.get_coords()[:4]
+        style = "g--"
+        ax.plot(x_l, y_l, style)
+        ax.plot(x_u, y_u, style)
