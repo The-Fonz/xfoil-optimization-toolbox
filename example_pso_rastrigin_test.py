@@ -23,13 +23,13 @@ def rastrigin_nd(*xi):
     n-dimensional rastrigin function. Every argument should be a single
     value or meshgrid, and is another dimension.
     """
-    return -(10*len(xi)+ np.sum(a**2 - (10*np.cos(2*np.pi*a)) for a in xi))
+    return (10*len(xi)+ np.sum(a**2 - (10*np.cos(2*np.pi*a)) for a in xi))
 
 iterations = 10
 # Parameters for 5 iterations, 1,000 function evaluations from:
 # http://hvass-labs.org/people/magnus/publications/pedersen10good-pso.pdf
 S, omega, theta_p, theta_g = 47, -0.1832, 0.5287, 3.1913
-global_bestscore = -float('inf')
+global_bestscore = None
 global_bestpos   = None
 
 constraints = np.array(((-5,5),(-5,5)))
@@ -63,10 +63,10 @@ for n in xrange(iterations+1):
                     particle.randomize()
         
         #plt.plot(particle.pts[0], particle.pts[1], 'yx')
-        if score > particle.bestscore:
+        if score < particle.bestscore:
             particle.new_best(score)
             style, txt = 'bo', 'particle best'
-            if score > global_bestscore:
+            if not global_bestscore or score < global_bestscore:
                 global_bestscore = score
                 # Copy to avoid globaL_bestpos becoming reference to array
                 global_bestpos = copy(particle.pts)

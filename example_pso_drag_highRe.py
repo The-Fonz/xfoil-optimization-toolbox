@@ -14,26 +14,16 @@ from optimization_algorithms.pso import Particle
 from airfoil_generators import parsec
 from xfoil import xfoil
 
-
-constraints = np.array((
-#rle    x_pre    d2ydx2_pre/suc  th_pre/suc
-(0,.1), (.2,.7), (-4,.5),        (0,45)
-))
-
-fig, (cur_afplt, lastpbest_afplt, gbest_afplt) = plt.subplots(3,1)
-# Show plot and make redrawing possible
-
 def construct_airfoil(*pts):
-    # Construct PARSEC coefficients
     k = {}
     k['rle'] = pts[0]
     k['x_pre'] = pts[1]
     # Thickness 21%
     k['y_pre'] = -.105
-    k['d2ydx2_pre'] = pts[2]
+    k['d2ydx2_pre'] = -pts[2]
     # Trailing edge angle
     k['th_pre'] = pts[3]
-
+    # Suction part
     k['x_suc'] = k['x_pre']
     k['y_suc'] = -k['y_pre']
     k['d2ydx2_suc'] = -k['d2ydx2_pre']
@@ -45,14 +35,18 @@ def construct_airfoil(*pts):
 
 def score_airfoil(airfoil):    
     # Make unique filename
-    randstr = ''.join(choice(ascii_uppercase) for i in range(12))
+    randstr = ''.join(choice(ascii_uppercase) for i in range(20))
     filename = "parsec_{}.dat".format(randstr)
     # Save coordinates
     with open(filename, 'w') as af:
         af.write(airfoil.get_coords_plain())
+    # Let Xfoil do its magic
     polar = xfoil.oper_visc_alpha(filename, 0, 2E6,
-                                  iterlim=300, show_seconds=0)
-    remove(filename)
+                                  iterlim=100, show_seconds=0)
+    try:
+        remove(filename)
+    except WindowsError:
+        print("\n\n\n\nWindows was not capable of removing the file.\n\n\n\n")
 
     try:
         score = polar[0][0][2]
@@ -68,10 +62,30 @@ def score_airfoil(airfoil):
         print("Return None (IndexError)")
         return None
 
-iterations = 10
+
+constraints = np.array((
+#rle        x_pre/suc    d2ydx2_pre/suc  th_pre/suc
+(.02,.05), (.3,.7),     (-2,0),          (0,40)
+))
+
+# Show plot and make redrawing possible
+fig, (cur_afplt, lastpbest_afplt, gbest_afplt) = plt.subplots(3,1)
+cur_afplt.hold(False)
+lastpbest_afplt.hold(False)
+gbest_afplt.hold(False)
+plt.tight_layout()
+plt.ion()
+#plt.show()
+
+#x_l, y_l, x_u, y_u = construct_airfoil(*constraints[:,0]).get_coords()
+#cur_afplt.plot(x_l, y_l, x_u, y_u)
+#plt.draw()
+plt.pause(.0001)
+
 # Parameters for 5 iterations, 1,000 function evaluations from:
 # http://hvass-labs.org/people/magnus/publications/pedersen10good-pso.pdf
-S, omega, theta_p, theta_g = 47, -0.1832, 0.5287, 3.1913
+#iterations, S, omega, theta_p, theta_g = 10, 10, .4, 2.5, 1.4
+iterations, S, omega, theta_p, theta_g = 100, 47, -0.1832, 0.5287, 3.1913
 global_bestscore = None
 global_bestpos   = None
 
@@ -80,7 +94,7 @@ particles = [Particle(constraints) for i in xrange(0, S)]
 
 for n in xrange(iterations+1):
     print("\nIteration {}".format(n))
-    for particle in particles:
+    for i_par, particle in enumerate(particles):
         # Keep scoring until converged
         score = None
         while not score:
@@ -91,30 +105,45 @@ for n in xrange(iterations+1):
                 #particle.APSO(global_bestpos, .5, .5)
             # None if not converged
             airfoil = construct_airfoil(*particle.pts)
-            #airfoil.plot(cur_afplt)
-            #plt.draw()
             score = score_airfoil(airfoil)
-            if not score:
-                print("Not converged. Randomizing particle")
+            #cur_afplt.clear()
+            plotstyle = "{}-".format(choice("rgb"))
+            airfoil.plot(cur_afplt, score="Cd {}".format(score), style=plotstyle,
+                         title="Current, particle n{}p{}".format(n, i_par))
+            plt.pause(.0001)
+            if not score and not global_bestscore:
+                print("Not converged, no global best. Randomizing particle.")
+                particle.randomize()
+            elif not score:
+                print("Not converged, there is a global best. Randomizing.")
                 particle.randomize()
 
         #plt.plot(particle.pts[0], particle.pts[1], 'yx')
-        if score > particle.bestscore:
+        if not particle.bestscore or score < particle.bestscore:
             particle.new_best(score)
             txt = 'particle best'
-            airfoil.plot(lastpbest_afplt)
-            #plt.draw()
-        if score > global_bestscore:
+            #lastpbest_afplt.cla()
+            airfoil.plot(lastpbest_afplt, score="Cd {}".format(score), style=plotstyle,
+            title="Particle best, particle n{}p{}".format(n, i_par))
+            plt.pause(.0001)
+        if not global_bestscore or score < global_bestscore:
             global_bestscore = score
             # Copy to avoid globaL_bestpos becoming reference to array
             global_bestpos = copy(particle.pts)
             txt = 'global best'
-            airfoil.plot(gbest_afplt)
-            #plt.draw()
+            #gbest_afplt.cla()
+            airfoil.plot(gbest_afplt, score="Cd {}".format(score), style=plotstyle,
+              title="Global best, particle n{}p{}".format(n, i_par))
+            plt.pause(.0001)
         print("Found {}, score {}\n".format(txt, score))
-            #plt.pause(0.00001)
-            #plt.plot(particle.pts[0], particle.pts[1], style)
+        #plt.pause(0.00001)
+        #plt.plot(particle.pts[0], particle.pts[1], style)
 
-print("Global best score: ", global_bestscore,
-      "Global best pos: ", global_bestpos)
-#plt.plot(global_bestpos[0], global_bestpos[1], 'yx', markersize=12)
+
+print("gbestscore= ", global_bestscore,
+      "; gbestpos= ", global_bestpos.__repr__())
+
+plt.show()
+
+# 2015-2-4: Standard PSO. S, omega, theta_p, theta_g = 10, .4, 2.5, 1.4
+# gbestscore= 0.0047; gbestpos= [0.02, 0.391, -0.315, 6.254]

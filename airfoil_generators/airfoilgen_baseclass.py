@@ -17,6 +17,7 @@ camberline's direction, not simply summing camberline and thickness.
 
 from __future__ import division
 import numpy as np
+from random import choice
 
 class ParametricAirfoil(object):
     """Base class for airfoil generators."""
@@ -96,9 +97,11 @@ class ParametricAirfoil(object):
         xpts *= self.xte
         return self._fn_upper_lower(xpts)
 
-    def plot(self, ax):
-        """Plots airfoil outline given matplotlib.pyplot.Axes"""
+    def plot(self, ax, score=None, title=None, style='r-'):
+        """Plots airfoil outline given matplotlib.pyplot.Axes object"""
         x_l, y_l, x_u, y_u = self.get_coords()[:4]
-        style = "g--"
-        ax.plot(x_l, y_l, style)
-        ax.plot(x_u, y_u, style)
+        ax.plot(x_l, y_l, style, x_u, y_u, style, linewidth=2)
+        if score:
+            ax.annotate(str(score), (.4,0))
+        if title:
+            ax.set_title(title)
