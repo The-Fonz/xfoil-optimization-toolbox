@@ -41,7 +41,7 @@ def score_airfoil(airfoil):
     with open(filename, 'w') as af:
         af.write(airfoil.get_coords_plain())
     # Let Xfoil do its magic
-    polar = xfoil.oper_visc_alpha(filename, 0, 2E6,
+    polar = xfoil.oper_visc_alpha(filename, 0, 1E6,
                                   iterlim=100, show_seconds=0)
     try:
         remove(filename)
@@ -65,11 +65,11 @@ def score_airfoil(airfoil):
 
 constraints = np.array((
 #rle        x_pre/suc    d2ydx2_pre/suc  th_pre/suc
-(.02,.05), (.3,.7),     (-2,0),          (0,40)
+(.015,.05), (.3,.75),     (-2,.2),          (0,40)
 ))
 
 # Show plot and make redrawing possible
-fig, (cur_afplt, lastpbest_afplt, gbest_afplt) = plt.subplots(3,1)
+fig, (cur_afplt, lastpbest_afplt, gbest_afplt, score_plt) = plt.subplots(4,1)
 cur_afplt.hold(False)
 lastpbest_afplt.hold(False)
 gbest_afplt.hold(False)
@@ -85,12 +85,15 @@ plt.pause(.0001)
 # Parameters for 5 iterations, 1,000 function evaluations from:
 # http://hvass-labs.org/people/magnus/publications/pedersen10good-pso.pdf
 #iterations, S, omega, theta_p, theta_g = 10, 10, .4, 2.5, 1.4
-iterations, S, omega, theta_p, theta_g = 100, 47, -0.1832, 0.5287, 3.1913
+#iterations, S, omega, theta_p, theta_g = 100, 47, -0.1832, 0.5287, 3.1913
+iterations, S, omega, theta_g, theta_p = 12, 12, -0.2, 2.8, 0
 global_bestscore = None
 global_bestpos   = None
 
 # Constructing a particle automatically initializes position and speed
 particles = [Particle(constraints) for i in xrange(0, S)]
+
+scores_y = []
 
 for n in xrange(iterations+1):
     print("\nIteration {}".format(n))
@@ -103,6 +106,7 @@ for n in xrange(iterations+1):
                 print("Update particle")
                 particle.update(global_bestpos, omega, theta_p, theta_g)
                 #particle.APSO(global_bestpos, .5, .5)
+                #particle.randomize()
             # None if not converged
             airfoil = construct_airfoil(*particle.pts)
             score = score_airfoil(airfoil)
@@ -111,11 +115,11 @@ for n in xrange(iterations+1):
             airfoil.plot(cur_afplt, score="Cd {}".format(score), style=plotstyle,
                          title="Current, particle n{}p{}".format(n, i_par))
             plt.pause(.0001)
-            if not score and not global_bestscore:
-                print("Not converged, no global best. Randomizing particle.")
+            if not score and (not global_bestscore or n==0):
+                print("Not converged, no global best, or first round. Randomizing particle.")
                 particle.randomize()
             elif not score:
-                print("Not converged, there is a global best. Randomizing.")
+                print("Not converged, there is a global best. Rewinding.")
                 particle.randomize()
 
         #plt.plot(particle.pts[0], particle.pts[1], 'yx')
@@ -126,6 +130,7 @@ for n in xrange(iterations+1):
             airfoil.plot(lastpbest_afplt, score="Cd {}".format(score), style=plotstyle,
             title="Particle best, particle n{}p{}".format(n, i_par))
             plt.pause(.0001)
+            print("Found particle best, score {}".format(score))
         if not global_bestscore or score < global_bestscore:
             global_bestscore = score
             # Copy to avoid globaL_bestpos becoming reference to array
@@ -135,9 +140,12 @@ for n in xrange(iterations+1):
             airfoil.plot(gbest_afplt, score="Cd {}".format(score), style=plotstyle,
               title="Global best, particle n{}p{}".format(n, i_par))
             plt.pause(.0001)
-        print("Found {}, score {}\n".format(txt, score))
-        #plt.pause(0.00001)
-        #plt.plot(particle.pts[0], particle.pts[1], style)
+            print("Found global best, score {}".format(score))
+        
+    scores_y.append(global_bestscore)
+    score_plt.plot(scores_y, 'r-')
+    score_plt.set_title("Global best per round")
+    plt.pause(.0001)
 
 
 print("gbestscore= ", global_bestscore,

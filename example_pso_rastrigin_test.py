@@ -25,10 +25,9 @@ def rastrigin_nd(*xi):
     """
     return (10*len(xi)+ np.sum(a**2 - (10*np.cos(2*np.pi*a)) for a in xi))
 
-iterations = 10
 # Parameters for 5 iterations, 1,000 function evaluations from:
 # http://hvass-labs.org/people/magnus/publications/pedersen10good-pso.pdf
-S, omega, theta_p, theta_g = 47, -0.1832, 0.5287, 3.1913
+iterations, S, omega, theta_g, theta_p = 20, 23, -0.3328, 2.8446, 0
 global_bestscore = None
 global_bestpos   = None
 
@@ -39,7 +38,7 @@ x, y = np.meshgrid(np.arange(*np.append(constraints[0],.05)),
 plt.title("Rastrigin function")
 plt.contourf(x, y, rastrigin_nd(x,y), cmap=plt.cm.coolwarm)
 plt.ion()
-plt.axis(constraints.flatten())
+#plt.axis(constraints.flatten())
 
 # Constructing a particle automatically initializes position and speed
 particles = [Particle(constraints) for i in xrange(0, S)]

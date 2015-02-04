@@ -78,16 +78,20 @@ class Particle():
         return ("Constraints: "+self.constraints.__str__()+
         "\nValues: "+self.pts.__str__())
     
-    def APSO(self, globMin, B, a):
+    def APSO(self, global_best, B, a):
         '''A simplified way of PSO, with no velocity, updating the particle
            in one step. http://arxiv.org/pdf/1203.6577.pdf
            Typically, a = 0.1L ~ 0.5L where L is the scale of each variable,
            while B = 0.1 ~ 0.7 is sufficient for most applications'''
-        for i in xrange(0,len(self.pts)):
-            pt = self.pts[i]
+        self.oldpts  = copy(self.pts)
+        self.oldspds = copy(self.spds)
+        for i, pt in enumerate(self.pts):
             mu, sigma = 0, 1
             e = normal(mu, sigma)
-            self.pts[i] = (1-B)*pt + B*globMin[i] + a*e
+            c = self.constraints[i]
+            L = abs(c[1]-c[0])
+            self.pts[i] = (1-B)*L*pt + B*L*global_best[i] + a*L*e
+        self._boundpts()
 
 
 def test():
