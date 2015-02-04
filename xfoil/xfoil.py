@@ -225,4 +225,4 @@ class NonBlockingStreamReader:
 
 if __name__ == "__main__":
     print oper_visc_alpha("NACA 2215", [0,5,1], 2E6, Mach=.6,
-                          gen_naca=True, plot=True)
+                          gen_naca=True, show_seconds=2)
