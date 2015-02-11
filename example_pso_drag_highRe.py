@@ -14,6 +14,15 @@ from optimization_algorithms.pso import Particle
 from airfoil_generators import parsec
 from xfoil import xfoil
 
+Re = 1E6
+constraints = np.array((
+#rle        x_pre/suc    d2ydx2_pre/suc  th_pre/suc
+(.015,.05), (.3,.75),     (-2,.2),          (0,40)
+))
+# Good parameters at:
+# http://hvass-labs.org/people/magnus/publications/pedersen10good-pso.pdf
+iterations, S, omega, theta_g, theta_p = 12, 12, -0.2, 2.8, 0
+
 def construct_airfoil(*pts):
     k = {}
     k['rle'] = pts[0]
@@ -41,8 +50,8 @@ def score_airfoil(airfoil):
     with open(filename, 'w') as af:
         af.write(airfoil.get_coords_plain())
     # Let Xfoil do its magic
-    polar = xfoil.oper_visc_alpha(filename, 0, 1E6,
-                                  iterlim=100, show_seconds=0)
+    polar = xfoil.oper_visc_alpha(filename, 0, Re,
+                                  iterlim=80, show_seconds=0)
     try:
         remove(filename)
     except WindowsError:
@@ -62,33 +71,21 @@ def score_airfoil(airfoil):
         print("Return None (IndexError)")
         return None
 
-
-constraints = np.array((
-#rle        x_pre/suc    d2ydx2_pre/suc  th_pre/suc
-(.015,.05), (.3,.75),     (-2,.2),          (0,40)
-))
-
 # Show plot and make redrawing possible
 fig, (cur_afplt, lastpbest_afplt, gbest_afplt, score_plt) = plt.subplots(4,1)
+# Enable auto-clearing
 cur_afplt.hold(False)
 lastpbest_afplt.hold(False)
 gbest_afplt.hold(False)
 plt.tight_layout()
+# Interactive mode
 plt.ion()
-#plt.show()
+#plt.pause(.0001)
 
-#x_l, y_l, x_u, y_u = construct_airfoil(*constraints[:,0]).get_coords()
-#cur_afplt.plot(x_l, y_l, x_u, y_u)
-#plt.draw()
-plt.pause(.0001)
-
-# Parameters for 5 iterations, 1,000 function evaluations from:
-# http://hvass-labs.org/people/magnus/publications/pedersen10good-pso.pdf
-#iterations, S, omega, theta_p, theta_g = 10, 10, .4, 2.5, 1.4
-#iterations, S, omega, theta_p, theta_g = 100, 47, -0.1832, 0.5287, 3.1913
-iterations, S, omega, theta_g, theta_p = 12, 12, -0.2, 2.8, 0
-global_bestscore = None
-global_bestpos   = None
+# Initialize globals
+global_bestscore   = None
+global_bestpos     = None
+global_bestairfoil = None
 
 # Constructing a particle automatically initializes position and speed
 particles = [Particle(constraints) for i in xrange(0, S)]
@@ -105,42 +102,37 @@ for n in xrange(iterations+1):
             if global_bestscore:
                 print("Update particle")
                 particle.update(global_bestpos, omega, theta_p, theta_g)
-                #particle.APSO(global_bestpos, .5, .5)
-                #particle.randomize()
             # None if not converged
             airfoil = construct_airfoil(*particle.pts)
             score = score_airfoil(airfoil)
-            #cur_afplt.clear()
             plotstyle = "{}-".format(choice("rgb"))
             airfoil.plot(cur_afplt, score="Cd {}".format(score), style=plotstyle,
                          title="Current, particle n{}p{}".format(n, i_par))
-            plt.pause(.0001)
+            #plt.pause(.0001)
             if not score and (not global_bestscore or n==0):
                 print("Not converged, no global best, or first round. Randomizing particle.")
                 particle.randomize()
             elif not score:
-                print("Not converged, there is a global best. Rewinding.")
+                print("Not converged, there is a global best. Randomizing.")
                 particle.randomize()
 
-        #plt.plot(particle.pts[0], particle.pts[1], 'yx')
         if not particle.bestscore or score < particle.bestscore:
             particle.new_best(score)
             txt = 'particle best'
-            #lastpbest_afplt.cla()
             airfoil.plot(lastpbest_afplt, score="Cd {}".format(score), style=plotstyle,
             title="Particle best, particle n{}p{}".format(n, i_par))
-            plt.pause(.0001)
+            #plt.pause(.0001)
             print("Found particle best, score {}".format(score))
         if not global_bestscore or score < global_bestscore:
             global_bestscore = score
             # Copy to avoid globaL_bestpos becoming reference to array
             global_bestpos = copy(particle.pts)
             txt = 'global best'
-            #gbest_afplt.cla()
             airfoil.plot(gbest_afplt, score="Cd {}".format(score), style=plotstyle,
               title="Global best, particle n{}p{}".format(n, i_par))
-            plt.pause(.0001)
+            #plt.pause(.0001)
             print("Found global best, score {}".format(score))
+            global_bestairfoil = airfoil
         
     scores_y.append(global_bestscore)
     score_plt.plot(scores_y, 'r-')
@@ -148,10 +140,9 @@ for n in xrange(iterations+1):
     plt.pause(.0001)
 
 
-print("gbestscore= ", global_bestscore,
-      "; gbestpos= ", global_bestpos.__repr__())
+print("Best airfoil found for Re={}, ".format(Re),
+      "score = ", global_bestscore,
+      ", pos = ", global_bestpos.__repr__(),
+      ", airfoil points:\n{}".format(airfoil.get_coords_plain()))
 
 plt.show()
-
-# 2015-2-4: Standard PSO. S, omega, theta_p, theta_g = 10, .4, 2.5, 1.4
-# gbestscore= 0.0047; gbestpos= [0.02, 0.391, -0.315, 6.254]

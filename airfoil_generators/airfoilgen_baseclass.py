@@ -17,7 +17,6 @@ camberline's direction, not simply summing camberline and thickness.
 
 from __future__ import division
 import numpy as np
-from random import choice
 
 class ParametricAirfoil(object):
     """Base class for airfoil generators."""
@@ -54,12 +53,12 @@ class ParametricAirfoil(object):
     
     def max_thickness(self):
         """Numerically compute max. thickness of airfoil"""
-        x_l, y_l, x_u, y_u = self.get_coords()[:4]
+        x_u, y_u, x_l, y_l = self.get_coords()[:4]
         return y_u.max() - y_l.min()
 
     def area(self):
         """Numerically compute volume of airfoil"""
-        x_l, y_l, x_u, y_u = self.get_coords()[:4]
+        x_u, y_u, x_l, y_l = self.get_coords()[:4]
         # Use trapezoidal integration
         return np.trapz(y_u, x_u) - np.trapz(y_l, x_l)
 

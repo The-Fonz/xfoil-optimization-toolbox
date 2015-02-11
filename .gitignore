@@ -1,6 +1,7 @@
 # Custom: exclude .dat airfoil files
 *.dat
 !*.exe
+.spyderproject
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
