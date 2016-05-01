@@ -22,7 +22,7 @@ from __future__ import division
 from time import sleep
 import subprocess as subp
 import numpy as np
-import os.path
+import os
 import re
 
 from threading import Thread
@@ -110,7 +110,7 @@ def _oper_visc(pcmd, airfoil, operating_point, Re, Mach=None,
 
 def parse_stdout_polar(lines):
     """Converts polar 'PLIS' data to array"""    
-    def clean_split(s): return re.split('\s+', s.replace('\r\n',''))[1:]
+    def clean_split(s): return re.split('\s+', s.replace(os.linesep,''))[1:]
 
     # Find location of data from ---- divider
     for i, line in enumerate(lines):
