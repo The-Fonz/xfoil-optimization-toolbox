@@ -1,5 +1,7 @@
 The Python XFOIL optimization toolbox can be used to optimize airfoils for a specific operating range. I initially made it to be able to optimize the shape of a strut.
 
+NOTE: Windows and Mac XFOIL binaries are included, see `xfoil` folder.
+
 ## Useful because...
 of its three different toolsets:
 - `/xfoil` module: Communicates with XFOIL, makes it possible to retrieve polar data with just one function call.
