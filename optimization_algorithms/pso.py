@@ -70,8 +70,8 @@ class Particle():
         for i, (lowerbound, upperbound) in enumerate(self.constraints):
             spd = self.spds[i]
             absrange = abs(upperbound-lowerbound)
-            if spd < -absrange: self.pts[i] = -absrange
-            if spd >  absrange: self.pts[i] =  absrange
+            if spd < -absrange: self.spds[i] = -absrange
+            if spd >  absrange: self.spds[i] =  absrange
 
     def __str__(self):
         '''Print values of Particle.'''
