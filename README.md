@@ -23,6 +23,12 @@ It can easily be applied to airfoils, simply by translating the list of constrai
 ![](example_figures/pso-parsec-dragalpha0-Re1M.png)
 [Go to code](example_pso_drag_highRe.py)
 
+## NURBS Airfoil Generation 
+http://eprints.soton.ac.uk/50031/1/Sobe07.pdf
+Follows the method implemented in this paper. It reduces the number of paramters from 12(required in PARSEC) to 6, helping in reducing the computational resource need for the optimization process. The only drawback being, it doesn't work too well with transonic airfoils, as reducing the number of paramters also
+means giving up some control over the airfoil spline. The figure below shows NURBS working with PSO particle optimizer. 
+![](example_figures/pso-nurbs-dragalpha0-Re1M.png)  
+
 ## Additional development ideas
 - NURBS airfoils: A great idea would be to add NURBS airfoils to the airfoil generators, as NURBS can define very smooth airfoils using very few parameters, so it's a good fit for optimization purposes. Ideally, its shape can be initialized by fitting it to some existing shape, to start off with a reasonable airfoil.
 - Simulated Annealing optimization technique: Would be interesting to compare this technique with PSO.
