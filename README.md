@@ -1,6 +1,6 @@
 The Python XFOIL optimization toolbox can be used to optimize airfoils for a specific operating range. I initially made it to be able to optimize the shape of a strut.
 
-NOTE: Windows and Mac XFOIL binaries are included, see `xfoil` folder.
+NOTE: Windows and Mac XFOIL binaries are included, see `xfoil` folder. You might have to rename them. It would be nice if the correct binary is automatically detected, should be quite easy to implement using [sys.platform](https://docs.python.org/3/library/sys.html?highlight=sys.platform#sys.platform). Feel free to implement this if you want a small programming challenge :)
 
 ## Useful because...
 of its three different toolsets:
