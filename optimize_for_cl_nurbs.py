@@ -17,14 +17,20 @@ from xfoil import xfoil
 Re = 300000
 constraints = np.array((
 #ta_u	#ta_l  	#tb_l   #alpha_b
+
 #ta_u = upward angle at front
 #ta_1 = bottom angle at front
 
-#tb_1 = bottom angle at back
+#tb_u = bottom angle at back
+#tb_l
+
+#alpha_a
 #alph_b = top angle at back
 
+(.01,.4), (.05,.4), (1,3),(0.05,3), (0.4,8), (1,10)
+
 #(.1,.4), (.1,.4), (.1,2), (1,10)
-(.1,.4), (.1,.4), (.1,2), (1,10)
+#(.05,.15), (.05,.15), (.6,8), (1,1.3)
 	))
 # Good parameters at:
 # http://hvass-labs.org/people/magnus/publications/pedersen10good-pso.pdf
@@ -34,10 +40,10 @@ def construct_airfoil(*pts):
 	k = {}
 	k['ta_u'] = pts[0]
 	k['ta_l'] = pts[1]
-	k['tb_u'] =  2.1241
-	k['tb_l'] = pts[2] 
-	k['alpha_b'] = pts[3]
-	k['alpha_c'] = 3.8270
+	k['tb_u'] = pts[2]
+	k['tb_l'] = pts[3] 
+	k['alpha_b'] = pts[4]
+	k['alpha_c'] = pts[5]
 	return nurbs.NURBS(k)
 
 def plot(argv, ax, score=None, title=None, style='r-'):
@@ -75,7 +81,7 @@ def score_airfoil(airfoil):
 	#Let Xfoil do its magic 
 	polar = xfoil.oper_visc_cl(filename,0,Re,
 									iterlim =80, show_seconds =0)
-	polar2 = xfoil.oper_visc_cl(filename,0.45,Re,
+	polar2 = xfoil.oper_visc_cl(filename,0.4,Re,
 									iterlim =80, show_seconds =0)
 
 	try: 
