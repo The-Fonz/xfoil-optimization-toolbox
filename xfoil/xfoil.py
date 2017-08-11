@@ -24,9 +24,17 @@ import subprocess as subp
 import numpy as np
 import os
 import re
+import sys
 
 from threading import Thread
 from Queue import Queue, Empty
+
+if sys.platform == 'win32':
+    XFOIL_BIN = "xfoil.exe"
+elif sys.platform == 'darwin':
+    XFOIL_BIN = "xfoil"
+elif sys.platform == 'linux2':
+    XFOIL_BIN = "xfoil"
 
 def oper_visc_alpha(*args, **kwargs):
     """Wrapper for _oper_visc"""
@@ -148,9 +156,11 @@ class Xfoil():
     on the XFOIL process.
     """
     
-    def __init__(self, path=""):
+    def __init__(self, path="",binary=""):
         """Spawn xfoil child process"""
-        self.xfinst = subp.Popen(os.path.join(path, 'xfoil'),
+        if not binary:
+            binary = XFOIL_BIN
+        self.xfinst = subp.Popen(os.path.join(path, binary),
                   stdin=subp.PIPE, stdout=subp.PIPE, stderr=subp.PIPE)
         self._stdoutnonblock = NonBlockingStreamReader(self.xfinst.stdout)
         self._stdin = self.xfinst.stdin
